@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # coding: utf-8
 # Copyright 2016 Abram Hindle, https://github.com/tywtyw2002, and https://github.com/treedust
+# Copyright 2023 Omar Niazie
 # 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -41,13 +42,24 @@ class HTTPClient(object):
         return None
 
     def get_code(self, data):
-        return None
+        code = data.split(' ')[1]
+        #print("CODE:", code)
+        return int(code)
 
     def get_headers(self,data):
-        return None
+        headers = data.split('\r\n\r\n')[0]
+        #print("HEADERS:", headers)
+        return headers
 
     def get_body(self, data):
-        return None
+        body = data.split('\r\n\r\n')
+        #print("BODY:", body)
+        if len(body) > 1:
+            body = body[1]
+            #print(body)
+        else:
+            body = body[0]
+        return body
     
     def sendall(self, data):
         self.socket.sendall(data.encode('utf-8'))
@@ -68,13 +80,56 @@ class HTTPClient(object):
         return buffer.decode('utf-8')
 
     def GET(self, url, args=None):
-        code = 500
-        body = ""
+        #print("URL:", url)
+        host = urllib.parse.urlparse(url).hostname
+        path = urllib.parse.urlparse(url).path or "/" 
+        port = urllib.parse.urlparse(url).port or 80
+        # test = "HOST: %s, PATH: %s, PORT: %d" %(host, path, port)
+        # print(test)
+        request = 'GET %s HTTP/1.1\r\nHost: %s\r\nConnection: close\r\n\r\n' %(path, host)
+        #print("REQUEST:\n", request)
+        self.connect(host, port)
+        self.sendall(request)
+        response = self.recvall(self.socket)
+        #print("RESPONSE:\n", response)
+        self.close()
+        code = self.get_code(response)
+        #print(code)
+        body = self.get_body(response)
+        #print(body)
         return HTTPResponse(code, body)
 
     def POST(self, url, args=None):
-        code = 500
-        body = ""
+        #print("URL:", url)
+        host = urllib.parse.urlparse(url).hostname
+        path = urllib.parse.urlparse(url).path or '/'
+        port = urllib.parse.urlparse(url).port or 80
+        # test = "HOST: %s, PATH: %s, PORT: %d" %(host, path, port)
+        # print(test)
+        # print("ARGS:", args)
+        query = ''
+        if args:
+            # for key in args:
+            #     args[key] = args[key].encode('utf-8')
+            #     if '\r' and '\n' in args[key]:
+            #         #print("ORIGINAL:", args[key])
+            #         #args[key] = urllib.parse.urlencode(args[key])
+            #         #args[key] = args[key].replace('\r', '')
+            #         #print("NEW:", args[key])
+            #         #args[key].join('\n')
+            #     query += key + "=" + args[key] + "&"
+            query = urllib.parse.urlencode(args)
+            #print(query)
+        #print("PATH+QUERY:", path + query)
+        request = 'POST %s HTTP/1.1\r\nHost: %s\r\nContent-Type: application/x-www-form-urlencoded\r\nContent-Length: %s\r\nConnection: close\r\n\r\n' %(path+query, host, len(query))
+        #print("REQUEST:\n", request)
+        self.connect(host, port)
+        self.sendall(request)
+        response = self.recvall(self.socket)
+        #print("RESPONSE:\n", response)
+        self.close()
+        code = self.get_code(response)
+        body = self.get_body(response)
         return HTTPResponse(code, body)
 
     def command(self, url, command="GET", args=None):
