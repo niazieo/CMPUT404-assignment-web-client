@@ -121,7 +121,7 @@ class HTTPClient(object):
             query = urllib.parse.urlencode(args)
             #print(query)
         #print("PATH+QUERY:", path + query)
-        request = 'POST %s HTTP/1.1\r\nHost: %s\r\nContent-Type: application/x-www-form-urlencoded\r\nContent-Length: %s\r\nConnection: close\r\n\r\n' %(path+query, host, len(query))
+        request = 'POST %s HTTP/1.1\r\nHost: %s\r\nContent-Type: application/x-www-form-urlencoded\r\nContent-Length: %s\r\n\r\n%s' %(path, host, str(len(query)), query)
         #print("REQUEST:\n", request)
         self.connect(host, port)
         self.sendall(request)
@@ -129,6 +129,7 @@ class HTTPClient(object):
         #print("RESPONSE:\n", response)
         self.close()
         code = self.get_code(response)
+        print(code)
         body = self.get_body(response)
         return HTTPResponse(code, body)
 
